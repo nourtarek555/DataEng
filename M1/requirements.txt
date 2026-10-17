@@ -1,0 +1,7 @@
+pandas>=2.2,<3
+pyarrow>=17,<25
+pytest>=8,<9
+jupyter>=1,<2
+ipykernel>=6,<8
+nbclient>=0.10,<1
+nbformat>=5.10,<6

@@ -1,0 +1,6 @@
+{
+  "rule": "source_ip=src_ip and destination host=dst_ip or dst_host and port equal; absolute time difference <= 60 seconds",
+  "matched": 2341,
+  "ambiguous": 25,
+  "unmatched": 1388
+}

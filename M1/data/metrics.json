@@ -1,0 +1,30 @@
+{
+  "session_volume_terminal": 95046,
+  "success_terminal_sessions": 87915,
+  "error_terminal_sessions": 7131,
+  "success_rate": 0.9249731708856764,
+  "error_rate": 0.0750268291143236,
+  "duration_completed_sessions": 87915,
+  "duration_p50_seconds": 17.459,
+  "duration_p95_seconds": 38.8463,
+  "trace_terminal_sessions": 95046,
+  "trace_complete_sessions": 78481,
+  "trace_completeness": 0.8257159691096942,
+  "siem_alerts_total": 3754,
+  "siem_alerts_matched_to_session": 2341,
+  "correlation_coverage": 0.6236014917421417,
+  "records_received": 1167903,
+  "records_rejected": 47157,
+  "rejected_record_rate": 0.040377497103783445,
+  "accepted_records_with_ingest_time": 894777,
+  "late_accepted_records": 0,
+  "late_accepted_rate": 0.0,
+  "policies": {
+    "duration": "earliest accepted terminal event_time minus earliest accepted session.start event_time; completed sessions only",
+    "trace": "terminal sessions with at least one accepted llm.turn and contiguous accepted sequence_number values beginning at 1",
+    "late": "event_time lag > 10s; accepted only through a 60s event-time watermark",
+    "missing_tokens": "null counts remain null; excluded from cost calculations",
+    "percentile": "pandas linear interpolation",
+    "rejected_denominator": "all source records from activity, flows, audit, and SIEM"
+  }
+}
