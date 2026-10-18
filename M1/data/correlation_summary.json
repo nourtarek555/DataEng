@@ -1,6 +1,11 @@
 {
-  "rule": "source_ip=src_ip and destination host=dst_ip or dst_host and port equal; absolute time difference <= 60 seconds",
+  "rule": "source_ip = src_ip AND destination.host = dst_ip or dst_host AND destination.port = dst_port AND |detected_at - flow_time| <= 60s (both in UTC)",
+  "tolerance_seconds": 60,
   "matched": 2341,
   "ambiguous": 25,
-  "unmatched": 1388
+  "unmatched": 1388,
+  "alerts_evaluated": 3754,
+  "coverage": 0.6236014917421417,
+  "ambiguous_policy": "multi-candidate alerts are not linked",
+  "unmatched_policy": "no candidate: not forced"
 }

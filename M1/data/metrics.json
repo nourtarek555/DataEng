@@ -4,27 +4,210 @@
   "error_terminal_sessions": 7131,
   "success_rate": 0.9249731708856764,
   "error_rate": 0.0750268291143236,
-  "duration_completed_sessions": 87915,
-  "duration_p50_seconds": 17.459,
-  "duration_p95_seconds": 38.8463,
+  "sessions_with_both_end_and_error": 0,
+  "duration_sessions": 95046,
+  "duration_p50_seconds": 17.635,
+  "duration_p95_seconds": 39.613249999999994,
+  "duration_successful_only_sessions": 87915,
+  "duration_successful_only_p50_seconds": 17.459,
+  "duration_successful_only_p95_seconds": 38.8463,
+  "negative_duration_sessions": 0,
   "trace_terminal_sessions": 95046,
-  "trace_complete_sessions": 78481,
-  "trace_completeness": 0.8257159691096942,
+  "trace_complete_sessions": 81712,
+  "trace_completeness": 0.8597100351408792,
   "siem_alerts_total": 3754,
   "siem_alerts_matched_to_session": 2341,
   "correlation_coverage": 0.6236014917421417,
   "records_received": 1167903,
-  "records_rejected": 47157,
-  "rejected_record_rate": 0.040377497103783445,
-  "accepted_records_with_ingest_time": 894777,
+  "records_rejected": 43175,
+  "rejected_record_rate": 0.036967967374002805,
+  "rejected_by_reason": {
+    "ORPHAN_EVENT": 16219,
+    "LATE_BEYOND_WATERMARK": 13687,
+    "DUPLICATE_EVENT_ID": 7430,
+    "INVALID_NUMERIC_RANGE": 1521,
+    "UNKNOWN_AGENT_ID": 1332,
+    "UNKNOWN_TENANT_ID": 730,
+    "MISSING_REQUIRED_FIELD": 724,
+    "MALFORMED_TIMESTAMP": 708,
+    "UNPARSEABLE_RECORD": 524,
+    "INVALID_EVENT_TYPE": 300
+  },
+  "accepted_records_with_ingest_time": 898759,
   "late_accepted_records": 0,
   "late_accepted_rate": 0.0,
+  "late_before_watermark_rows": 13927,
+  "late_before_watermark_denominator": 929617,
+  "late_before_watermark_rate": 0.01498143859245259,
+  "missing_token_effect": {
+    "llm_turns_accepted": 395397,
+    "turns_missing_input_tokens": 0,
+    "turns_missing_output_tokens": 3982,
+    "mean_output_tokens_null_excluded": 239.7907642783235,
+    "mean_output_tokens_zero_filled": 237.37585768227882,
+    "mean_input_tokens_null_excluded": 3766.364021477148,
+    "mean_input_tokens_zero_filled": 3766.364021477148,
+    "chosen_policy": "null (rows kept, excluded from token/cost aggregates)"
+  },
   "policies": {
-    "duration": "earliest accepted terminal event_time minus earliest accepted session.start event_time; completed sessions only",
-    "trace": "terminal sessions with at least one accepted llm.turn and contiguous accepted sequence_number values beginning at 1",
-    "late": "event_time lag > 10s; accepted only through a 60s event-time watermark",
-    "missing_tokens": "null counts remain null; excluded from cost calculations",
-    "percentile": "pandas linear interpolation",
-    "rejected_denominator": "all source records from activity, flows, audit, and SIEM"
+    "session_volume": "distinct sessions with an accepted session.end or session.error (terminal sessions)",
+    "success_error": "success = terminal session with a session.end; error = terminal session without one; denominator = all terminal sessions",
+    "duration": "earliest accepted terminal event_time minus earliest accepted session.start event_time, all terminal sessions (Appendix A: duration percentiles use terminal sessions); successful-only values reported separately; pandas linear interpolation",
+    "trace": "terminal sessions with at least one accepted llm.turn and accepted sequence numbers 1..n without gaps",
+    "correlation_coverage": "SIEM alerts uniquely matched to a flow (hence session) / all accepted SIEM alerts",
+    "rejected_rate": "rejected records / all received records (activity rows + flows + audit lines + SIEM alerts)",
+    "late": "ingest_time - event_time > 10s. Watermark 60s applied: records later than that are rejected, so late-accepted covers (10, 60] s only",
+    "late_denominator": "accepted rows that have an ingest_time (activity only); late_before_watermark_* uses de-duplicated activity rows with parseable times",
+    "missing_tokens": "kept as null, excluded from cost; effect shown in missing_token_effect",
+    "null_policy": "optional fields stay null; required fields missing -> rejected; no value is invented"
+  },
+  "clock_conventions": {
+    "audit_log": {
+      "method": "median(audit local time - flow UTC time) over the same session+destination, per host, rounded to 0.5h",
+      "default_hours": 2,
+      "matched_pairs": 41362,
+      "per_host": {
+        "sbx-eu-100": {
+          "pairs": 1292,
+          "median_hours": 1.986
+        },
+        "sbx-eu-101": {
+          "pairs": 1163,
+          "median_hours": 2.011
+        },
+        "sbx-eu-102": {
+          "pairs": 1176,
+          "median_hours": 1.977
+        },
+        "sbx-eu-106": {
+          "pairs": 1242,
+          "median_hours": 1.987
+        },
+        "sbx-eu-107": {
+          "pairs": 1182,
+          "median_hours": 1.997
+        },
+        "sbx-eu-108": {
+          "pairs": 1227,
+          "median_hours": 2.009
+        },
+        "sbx-eu-109": {
+          "pairs": 1662,
+          "median_hours": 1.994
+        },
+        "sbx-eu-110": {
+          "pairs": 1603,
+          "median_hours": 2.001
+        },
+        "sbx-eu-111": {
+          "pairs": 1712,
+          "median_hours": 1.989
+        },
+        "sbx-eu-133": {
+          "pairs": 2637,
+          "median_hours": 2.021
+        },
+        "sbx-eu-134": {
+          "pairs": 2759,
+          "median_hours": 2.009
+        },
+        "sbx-eu-135": {
+          "pairs": 2552,
+          "median_hours": 2.022
+        },
+        "sbx-eu-139": {
+          "pairs": 532,
+          "median_hours": 2.011
+        },
+        "sbx-eu-140": {
+          "pairs": 567,
+          "median_hours": 2.019
+        },
+        "sbx-eu-141": {
+          "pairs": 439,
+          "median_hours": 1.998
+        },
+        "sbx-me-121": {
+          "pairs": 2491,
+          "median_hours": 2.007
+        },
+        "sbx-me-122": {
+          "pairs": 2490,
+          "median_hours": 1.998
+        },
+        "sbx-me-123": {
+          "pairs": 2506,
+          "median_hours": 2.021
+        },
+        "sbx-me-124": {
+          "pairs": 1035,
+          "median_hours": 2.004
+        },
+        "sbx-me-125": {
+          "pairs": 1081,
+          "median_hours": 2.016
+        },
+        "sbx-me-126": {
+          "pairs": 1153,
+          "median_hours": 1.977
+        },
+        "sbx-us-115": {
+          "pairs": 1246,
+          "median_hours": 2.009
+        },
+        "sbx-us-116": {
+          "pairs": 1234,
+          "median_hours": 1.991
+        },
+        "sbx-us-117": {
+          "pairs": 1206,
+          "median_hours": 2.006
+        },
+        "sbx-us-118": {
+          "pairs": 1721,
+          "median_hours": 1.975
+        },
+        "sbx-us-119": {
+          "pairs": 1765,
+          "median_hours": 1.986
+        },
+        "sbx-us-120": {
+          "pairs": 1689,
+          "median_hours": 2.014
+        }
+      },
+      "global_median_hours": 2.006,
+      "fallback_hours": 2.0,
+      "hosts_with_own_offset": 27,
+      "distinct_offsets_hours": [
+        2.0
+      ]
+    },
+    "activity_event_time_by_format": {
+      "epoch_ms": {
+        "rows": 13905,
+        "median_lateness_s": 0.91,
+        "share_negative": 0.0
+      },
+      "naive": {
+        "rows": 732,
+        "median_lateness_s": 1.404,
+        "share_negative": 0.0
+      },
+      "offset": {
+        "rows": 915688,
+        "median_lateness_s": 0.91,
+        "share_negative": 0.0
+      }
+    },
+    "note": "naive activity times are assumed UTC; if their median lateness is far from the 'offset' rows, they are local times"
+  },
+  "reference_data_checks": {
+    "tenants_region_outside_enum": 1,
+    "tenants_duplicate_ids": 0,
+    "agent_ids_with_more_than_one_name": 1,
+    "agent_keys_duplicated_after_version_normalisation": 1,
+    "agent_keys_with_conflicting_sandbox_profile_after_normalisation": 0,
+    "tools_exact_duplicate_rows_dropped": 1
   }
 }
