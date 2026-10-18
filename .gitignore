@@ -1,2 +1,5 @@
 
 M1/data/canonical_activity.csv
+.venv/
+__pycache__/
+*.pyc
