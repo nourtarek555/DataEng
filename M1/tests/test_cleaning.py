@@ -1,6 +1,8 @@
+import os
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from M1.cleaning import (
     calculate_metrics,
@@ -23,8 +25,10 @@ def test_normalize_timestamp_handles_iso_epoch_and_naive_utc():
 
 def test_deduplicate_activity_keeps_earliest_ingest_and_records_provenance():
     frame = pd.DataFrame([
-        {"event_id": "ev_1", "ingest_time": "2026-01-01T00:00:02Z", "source_line": 1, "source_file": "a.parquet", "raw_payload": {"copy": 2}},
-        {"event_id": "ev_1", "ingest_time": "2026-01-01T00:00:01Z", "source_line": 2, "source_file": "a.parquet", "raw_payload": {"copy": 1}},
+        {"event_id": "ev_1", "_ingest_time_utc": pd.Timestamp("2026-01-01T00:00:02Z"), "source_line": 1,
+         "source_file": "a.parquet", "raw_payload": {"copy": 2}},
+        {"event_id": "ev_1", "_ingest_time_utc": pd.Timestamp("2026-01-01T00:00:01Z"), "source_line": 2,
+         "source_file": "a.parquet", "raw_payload": {"copy": 1}},
     ])
     accepted, rejected = deduplicate_activity(frame)
     assert accepted.iloc[0]["source_line"] == 2
@@ -41,8 +45,10 @@ def test_agent_version_alias_resolves_to_same_surrogate():
 
 def test_alert_correlation_separates_matched_ambiguous_and_unmatched():
     flows = [
-        {"flow_id": "nf_1", "src_ip": "10.0.0.1", "dst_ip": "192.0.2.1", "dst_host": None, "dst_port": 443, "flow_time": "2026-01-01T00:00:00Z"},
-        {"flow_id": "nf_2", "src_ip": "10.0.0.1", "dst_ip": "192.0.2.1", "dst_host": None, "dst_port": 443, "flow_time": "2026-01-01T00:00:02Z"},
+        {"flow_id": "nf_1", "src_ip": "10.0.0.1", "dst_ip": "192.0.2.1", "dst_host": None, "dst_port": 443,
+         "_time": pd.Timestamp("2026-01-01T00:00:00Z")},
+        {"flow_id": "nf_2", "src_ip": "10.0.0.1", "dst_ip": "192.0.2.1", "dst_host": None, "dst_port": 443,
+         "_time": pd.Timestamp("2026-01-01T00:00:02Z")},
     ]
     alerts = [
         {"alert_id": "al_1", "source_ip": "10.0.0.1", "detected_at": "2026-01-01T00:00:00Z", "destination": {"host": "192.0.2.1", "port": 443}},
@@ -86,13 +92,14 @@ def test_vector_validation_obeys_rejection_priority_and_orphan_definition():
 
 
 def test_metrics_use_declared_denominators_and_session_semantics():
-    events = pd.DataFrame([
-        {"session_id": "ss_1", "event_type": "session.start", "_event_time_utc": pd.Timestamp("2026-01-01T00:00:00Z")},
-        {"session_id": "ss_1", "event_type": "llm.turn", "_event_time_utc": pd.Timestamp("2026-01-01T00:00:02Z")},
-        {"session_id": "ss_1", "event_type": "session.end", "_event_time_utc": pd.Timestamp("2026-01-01T00:00:10Z")},
-        {"session_id": "ss_2", "event_type": "session.start", "_event_time_utc": pd.Timestamp("2026-01-01T00:00:00Z")},
-        {"session_id": "ss_2", "event_type": "llm.turn", "_event_time_utc": pd.Timestamp("2026-01-01T00:00:03Z")},
-        {"session_id": "ss_2", "event_type": "session.error", "_event_time_utc": pd.Timestamp("2026-01-01T00:00:20Z")},
+    def ev(session, etype, seq, seconds):
+        return {"session_id": session, "event_type": etype, "sequence_number": seq,
+                "_event_time_utc": pd.Timestamp("2026-01-01T00:00:00Z") + pd.Timedelta(seconds=seconds),
+                "input_tokens": None, "output_tokens": None}
+
+    accepted = pd.DataFrame([
+        ev("ss_1", "session.start", 1, 0), ev("ss_1", "llm.turn", 2, 2), ev("ss_1", "session.end", 3, 10),
+        ev("ss_2", "session.start", 1, 0), ev("ss_2", "llm.turn", 2, 3), ev("ss_2", "session.error", 4, 20),
     ])
     canonical = pd.DataFrame([
         {"activity_type": "lifecycle", "session_id": "ss_1", "ingest_time_utc": pd.Timestamp("2026-01-01T00:00:20Z"), "lateness_s": 15},
@@ -100,12 +107,21 @@ def test_metrics_use_declared_denominators_and_session_semantics():
         {"activity_type": "siem_alert", "session_id": None, "ingest_time_utc": pd.NaT, "lateness_s": None},
     ])
     rejects = pd.DataFrame([{"reason": "ORPHAN_EVENT"}])
-    metrics = calculate_metrics(canonical, events, {"ss_1": [1, 2, 3], "ss_2": [1, 2, 4]}, rejects, 10)
+    deduplicated = pd.DataFrame([{
+        "_event_time_utc": pd.Timestamp("2026-01-01T00:00:00Z"),
+        "_ingest_time_utc": pd.Timestamp("2026-01-01T00:00:01Z"),
+    }])
+    metrics = calculate_metrics(accepted, canonical, rejects, 10, deduplicated)
+
     assert metrics["session_volume_terminal"] == 2
     assert metrics["success_rate"] == 0.5
     assert metrics["error_rate"] == 0.5
-    assert metrics["duration_p50_seconds"] == 10
-    assert metrics["duration_p95_seconds"] == 10
+    # headline duration = all terminal sessions (10 s and 20 s)
+    assert metrics["duration_p50_seconds"] == pytest.approx(15.0)
+    assert metrics["duration_p95_seconds"] == pytest.approx(19.5)
+    # successful-only (ss_1 only)
+    assert metrics["duration_successful_only_p50_seconds"] == pytest.approx(10.0)
+    assert metrics["duration_successful_only_p95_seconds"] == pytest.approx(10.0)
     assert metrics["trace_completeness"] == 0.5
     assert metrics["correlation_coverage"] == 0.5
     assert metrics["rejected_record_rate"] == 0.1
@@ -113,7 +129,9 @@ def test_metrics_use_declared_denominators_and_session_semantics():
 
 
 def test_clean_model_pricing_ends_old_price_when_new_price_starts():
-    root = Path(__file__).resolve().parents[2]
+    root = Path(os.environ.get("KESTREL_DATA", Path(__file__).resolve().parents[2]))
+    if not (root / "model_pricing.csv").exists():
+        pytest.skip("model_pricing.csv not found; set KESTREL_DATA to the folder with the raw files")
     prices = clean_model_pricing(root)
     pro_prices = prices[prices["model_id"] == "mdl_kst_pro_1"].sort_values("effective_from")
     assert pro_prices.iloc[0]["effective_to"] == pd.Timestamp("2026-03-01T00:00:00Z")

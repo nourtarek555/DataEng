@@ -1,5 +1,8 @@
 pandas>=2.2,<3
 pyarrow>=17,<25
+numpy>=1.26
+sqlalchemy>=2,<3
+psycopg2-binary>=2.9
 pytest>=8,<9
 jupyter>=1,<2
 ipykernel>=6,<8
